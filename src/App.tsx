@@ -67,6 +67,8 @@ function App() {
       ],
     };
 
+    console.log("reserverdSponsorGasData", reservedSponsorGasData);
+
     const payment = reservedSponsorGasData.gas_coins as IotaObjectRef[];
     const gasPrice = await client.getReferenceGasPrice();
 
@@ -126,7 +128,13 @@ function App() {
 
       didDocument.insertService(linkedDomainService.toService());
 
-      await identity.updateDidDocument(didDocument, controllerToken).buildAndExecute(identityClient);
+      await identity
+        .updateDidDocument(didDocument, controllerToken)
+        .withGasBudget(gasBudgetBI)
+        .withGasOwner(reservedSponsorGasData.sponsor_address)
+        .withGasPayment(payment)
+        .withGasPrice(gasPrice)
+        .buildAndExecute(identityClient);
 
       /*
 
