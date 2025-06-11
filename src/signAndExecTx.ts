@@ -7,10 +7,7 @@ import {
 } from "@iota/iota-sdk/client";
 import { toB64 } from "@iota/bcs";
 import axios from "axios";
-import {
-  Ed25519Keypair,
-  Ed25519PublicKey,
-} from "@iota/iota-sdk/keypairs/ed25519";
+import { Ed25519Keypair, Ed25519PublicKey } from "@iota/iota-sdk/keypairs/ed25519";
 import { getFaucetHost, requestIotaFromFaucetV1 } from "@iota/iota-sdk/faucet";
 
 export interface Account {
@@ -22,13 +19,13 @@ export interface Account {
 }
 
 export type gasStationCfg = {
-  gasStation1URL: string,
-  gasStation1Token: string,
-  gasStation2URL: string,
-  gasStation2Token: string,
-}
+  gasStation1URL: string;
+  gasStation1Token: string;
+  gasStation2URL: string;
+  gasStation2Token: string;
+};
 
-export async function singAndExecTx(
+export async function signAndExecTx(
   network: string,
   client: IotaClient,
   gasStation: gasStationCfg,
@@ -38,26 +35,13 @@ export async function singAndExecTx(
     onSuccess: (result: IotaTransactionBlockResponse) => void;
     onError: (err: unknown) => void;
     onSettled?: () => void;
-  },
+  }
 ) {
   try {
     if (useGasStation) {
-      return await executeWithGasStation(
-        network,
-        client,
-        gasStation,
-        keyPair,
-        tx,
-        callbacks,
-      );
+      return await executeWithGasStation(network, client, gasStation, keyPair, tx, callbacks);
     } else {
-      return await executeWithoutGasStation(
-        network,
-        client,
-        keyPair,
-        tx,
-        callbacks,
-      );
+      return await executeWithoutGasStation(network, client, keyPair, tx, callbacks);
     }
   } finally {
     if (callbacks.onSettled) {
@@ -65,7 +49,6 @@ export async function singAndExecTx(
     }
   }
 }
-
 
 // ✅ Metodo per eseguire la transazione SENZA la Gas Station
 async function executeWithoutGasStation(
@@ -76,7 +59,7 @@ async function executeWithoutGasStation(
   callbacks: {
     onSuccess: (result: IotaTransactionBlockResponse) => void;
     onError: (err: unknown) => void;
-  },
+  }
 ) {
   console.log("Not using Gas Station");
 
@@ -93,11 +76,10 @@ async function executeWithoutGasStation(
       transaction: tx,
     });
 
-    const txEffect: IotaTransactionBlockResponse =
-      await client.waitForTransaction({
-        digest: result.digest,
-        options: { showEffects: true },
-      });
+    const txEffect: IotaTransactionBlockResponse = await client.waitForTransaction({
+      digest: result.digest,
+      options: { showEffects: true },
+    });
 
     callbacks.onSuccess(txEffect);
     return { tx_effect: txEffect, success: true };
@@ -141,9 +123,7 @@ export async function waitForFaucetTokens(client: IotaClient, sender: string) {
     }
   }
 
-  throw new Error(
-    "Timeout: Il faucet non ha inviato i token entro 15 secondi.",
-  );
+  throw new Error("Timeout: Il faucet non ha inviato i token entro 15 secondi.");
 }
 
 interface ReserveGasResult {
@@ -152,10 +132,10 @@ interface ReserveGasResult {
   gas_coins: ObjectRef[]; // References to the sponsor’s coins that will pay gas.
 }
 
-async function getSponsorGas(
+export async function getSponsorGas(
   gasBudget: number,
   gasStationUrl: string,
-  gasStationToken: string,
+  gasStationToken: string
 ): Promise<ReserveGasResult> {
   // Configure the Axios instance with the bearer token required by the gas station
   axios.defaults.headers.common = {
@@ -169,20 +149,17 @@ async function getSponsorGas(
   };
 
   // Call the gas station endpoint to reserve gas
-  const reservation_response = await axios.post(
-    gasStationUrl + "/v1/reserve_gas",
-    requestData,
-  );
+  const reservation_response = await axios.post(gasStationUrl + "/v1/reserve_gas", requestData);
 
   // Return the result containing sponsor address, ID, and coin references
   return reservation_response.data.result;
 }
 
-async function sponsorSignAndSubmit(
+export async function sponsorSignAndSubmit(
   reservationId: number,
   transaction: Uint8Array,
   senderSignature: string,
-  gasStationUrl: string,
+  gasStationUrl: string
 ): Promise<TransactionEffects> {
   // Encode the transaction bytes to Base64, to pass along with the sender's signature
   const data = {
@@ -205,20 +182,13 @@ async function attemptTransactionWithGasStation(
   gasStationToken: string,
   keyPair: Ed25519Keypair,
   tx: Transaction, // Assicurati che Transaction sia il tipo corretto
-  gasBudget: number,
+  gasBudget: number
 ): Promise<IotaTransactionBlockResponse> {
   console.log(`Attempting transaction using Gas Station: ${gasStationURL}`);
 
-  const reservedSponsorGasData = await getSponsorGas(
-    gasBudget,
-    gasStationURL,
-    gasStationToken,
-  );
+  const reservedSponsorGasData = await getSponsorGas(gasBudget, gasStationURL, gasStationToken);
 
-  console.log(
-    `✅ Reserved Gas Object from ${gasStationURL} in ${network}:`,
-    reservedSponsorGasData,
-  );
+  console.log(`✅ Reserved Gas Object from ${gasStationURL} in ${network}:`, reservedSponsorGasData);
 
   const sender = keyPair.toIotaAddress(); // Assumi che questo metodo esista
   tx.setSender(sender); // Assumi che questi metodi esistano sull'oggetto tx
@@ -237,11 +207,11 @@ async function attemptTransactionWithGasStation(
     reservedSponsorGasData.reservation_id,
     unsignedTxBytes,
     senderSignature,
-    gasStationURL,
+    gasStationURL
   );
 
   console.log(
-    `🚀 Transaction Issued via ${gasStationURL}: https://explorer.rebased.iota.org/txblock/${transactionEffects.transactionDigest}`,
+    `🚀 Transaction Issued via ${gasStationURL}: https://explorer.rebased.iota.org/txblock/${transactionEffects.transactionDigest}`
   );
 
   const transactionResponse: IotaTransactionBlockResponse = {
@@ -261,7 +231,7 @@ async function executeWithGasStation(
   callbacks: {
     onSuccess: (result: IotaTransactionBlockResponse) => void;
     onError: (err: unknown) => void;
-  },
+  }
 ): Promise<{
   tx_effect: IotaTransactionBlockResponse | null;
   success: boolean;
@@ -280,15 +250,12 @@ async function executeWithGasStation(
       gasStation.gasStation1Token,
       keyPair,
       tx, // Passa la stessa istanza di tx
-      gasBudget,
+      gasBudget
     );
     callbacks.onSuccess(result);
     return { tx_effect: result, success: true };
   } catch (error1) {
-    console.warn(
-      `❌ Primary Gas Station (${gasStation.gasStation1URL}) failed:`,
-      error1,
-    );
+    console.warn(`❌ Primary Gas Station (${gasStation.gasStation1URL}) failed:`, error1);
 
     // Verifica se sono stati forniti i dettagli per la seconda gas station
     if (gasStation.gasStation2URL && gasStation.gasStation2Token) {
@@ -302,23 +269,18 @@ async function executeWithGasStation(
           gasStation.gasStation2Token,
           keyPair,
           tx, // Passa la stessa istanza di tx (potrebbe essere stata parzialmente modificata dal primo tentativo, es. sender set)
-          gasBudget,
+          gasBudget
         );
         callbacks.onSuccess(result);
         return { tx_effect: result, success: true };
       } catch (error2) {
-        console.error(
-          `❌ Secondary Gas Station (${gasStation.gasStation2URL}) also failed:`,
-          error2,
-        );
+        console.error(`❌ Secondary Gas Station (${gasStation.gasStation2URL}) also failed:`, error2);
         // Entrambi i tentativi falliti, chiama onError con l'errore del secondo tentativo
         callbacks.onError(error2);
         return { tx_effect: null, success: false };
       }
     } else {
-      console.error(
-        "❌ Primary Gas Station failed and no secondary Gas Station configured.",
-      );
+      console.error("❌ Primary Gas Station failed and no secondary Gas Station configured.");
       // Chiama onError con l'errore del primo tentativo poiché non c'è fallback
       callbacks.onError(error1);
       return { tx_effect: null, success: false };
