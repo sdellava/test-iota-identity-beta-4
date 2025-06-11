@@ -128,13 +128,36 @@ function App() {
 
       didDocument.insertService(linkedDomainService.toService());
 
-      await identity
+      const reservedSponsorGasData2 = {
+        sponsor_address: reservedSponsorGasDataOriginal.sponsor_address,
+        reservation_id: reservedSponsorGasDataOriginal.reservation_id,
+        gas_coins: [
+          {
+            objectId: reservedSponsorGasDataOriginal.gas_coins[0].objectId,
+            version: reservedSponsorGasDataOriginal.gas_coins[0].version.toString(),
+            digest: reservedSponsorGasDataOriginal.gas_coins[0].digest,
+          },
+        ],
+      };
+
+      console.log("reserverdSponsorGasData", reservedSponsorGasData2);
+
+      const payment2 = reservedSponsorGasData2.gas_coins as IotaObjectRef[];
+
+      const [tx_data_bcs2, [senderSig2], createIdentity2] = await identity
         .updateDidDocument(didDocument, controllerToken)
         .withGasBudget(gasBudgetBI)
-        .withGasOwner(reservedSponsorGasData.sponsor_address)
-        .withGasPayment(payment)
+        .withGasOwner(reservedSponsorGasData2.sponsor_address)
+        .withGasPayment(payment2)
         .withGasPrice(gasPrice)
-        .buildAndExecute(identityClient);
+        .build(identityClient);
+
+      const transactionEffects2 = await sponsorSignAndSubmit(
+        reservedSponsorGasData2.reservation_id,
+        tx_data_bcs2,
+        senderSig2,
+        gasStation.gasStation1URL
+      );
 
       /*
 
