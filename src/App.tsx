@@ -22,6 +22,9 @@ import {
   init,
   Timestamp,
   Duration,
+  Credential,
+  JwsSignatureOptions,
+  DomainLinkageConfiguration,
 } from "@iota/identity-wasm/web";
 import wasmUrl from "@iota/identity-wasm/web/identity_wasm_bg.wasm?url";
 
@@ -172,8 +175,6 @@ function App() {
         expirationDate: Timestamp.nowUTC().checkedAdd(Duration.weeks(52))!,
       });
 
-      /*
-      
       // Sign the credential.
       const credentialJwt = await didDocument.createCredentialJwt(
         storage,
@@ -187,21 +188,19 @@ function App() {
       const configurationResourceJson = configurationResource.toJSON();
       const jsonStr = JSON.stringify(configurationResourceJson, null, 2);
 
-
-  const downloadVC = (jsonStr: string) => {
-    const blob = new Blob([jsonStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "did-configuration.json";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+      const downloadVC = (jsonStr: string) => {
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "did-configuration.json";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      };
 
       downloadVC(jsonStr);
-      */
     }
   };
 
