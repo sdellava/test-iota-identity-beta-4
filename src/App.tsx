@@ -128,19 +128,25 @@ function App() {
 
       didDocument.insertService(linkedDomainService.toService());
 
+      const reservedSponsorGasDataOriginal2 = await getSponsorGas(
+        gasBudget,
+        gasStation.gasStation1URL,
+        gasStation.gasStation1Token
+      );
+
       const reservedSponsorGasData2 = {
-        sponsor_address: reservedSponsorGasDataOriginal.sponsor_address,
-        reservation_id: reservedSponsorGasDataOriginal.reservation_id,
+        sponsor_address: reservedSponsorGasDataOriginal2.sponsor_address,
+        reservation_id: reservedSponsorGasDataOriginal2.reservation_id,
         gas_coins: [
           {
-            objectId: reservedSponsorGasDataOriginal.gas_coins[0].objectId,
-            version: reservedSponsorGasDataOriginal.gas_coins[0].version.toString(),
-            digest: reservedSponsorGasDataOriginal.gas_coins[0].digest,
+            objectId: reservedSponsorGasDataOriginal2.gas_coins[0].objectId,
+            version: reservedSponsorGasDataOriginal2.gas_coins[0].version.toString(),
+            digest: reservedSponsorGasDataOriginal2.gas_coins[0].digest,
           },
         ],
       };
 
-      console.log("reserverdSponsorGasData", reservedSponsorGasData2);
+      console.log("reserverdSponsorGasData2", reservedSponsorGasData2);
 
       const payment2 = reservedSponsorGasData2.gas_coins as IotaObjectRef[];
 
@@ -159,15 +165,15 @@ function App() {
         gasStation.gasStation1URL
       );
 
-      /*
-
       // Create the Domain Linkage Credential.
-      const domainLinkageCredential: Credential = Credential createDomainLinkageCredential({
+      const domainLinkageCredential: Credential = Credential.createDomainLinkageCredential({
         issuer: didDocument.id(),
         origin: normalizedDomain,
         expirationDate: Timestamp.nowUTC().checkedAdd(Duration.weeks(52))!,
       });
 
+      /*
+      
       // Sign the credential.
       const credentialJwt = await didDocument.createCredentialJwt(
         storage,
