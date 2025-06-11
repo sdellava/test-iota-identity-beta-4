@@ -20,6 +20,8 @@ import {
   JwsAlgorithm,
   KeyIdMemStore,
   init,
+  Timestamp,
+  Duration,
 } from "@iota/identity-wasm/web";
 import wasmUrl from "@iota/identity-wasm/web/identity_wasm_bg.wasm?url";
 
@@ -44,8 +46,8 @@ function App() {
 
     if (!client || !keyPair || !network) throw new Error("");
 
-    const gasBudget = 50_000_000;
-    const gasBudgetBI = BigInt(50000000);
+    const gasBudget = 30_000_000;
+    const gasBudgetBI = BigInt(30000000);
 
     const reservedSponsorGasDataOriginal = await getSponsorGas(
       gasBudget,
@@ -100,6 +102,8 @@ function App() {
       gasStation.gasStation1URL
     );
 
+    await wait();
+
     const identity = await createIdentity.apply(transactionEffects, identityClient);
 
     const controllerToken = await identity.getControllerToken(identityClient);
@@ -124,16 +128,15 @@ function App() {
 
       await identity.updateDidDocument(didDocument, controllerToken).buildAndExecute(identityClient);
 
-      //// UNCOMMENT THIS BLOCK AFTER SOLVING THE STORAGE ISSUE
-
       /*
+
       // Create the Domain Linkage Credential.
-      const domainLinkageCredential: Credential = Credential.createDomainLinkageCredential({
+      const domainLinkageCredential: Credential = Credential createDomainLinkageCredential({
         issuer: didDocument.id(),
         origin: normalizedDomain,
         expirationDate: Timestamp.nowUTC().checkedAdd(Duration.weeks(52))!,
       });
-      
+
       // Sign the credential.
       const credentialJwt = await didDocument.createCredentialJwt(
         storage,
@@ -177,3 +180,13 @@ function App() {
 }
 
 export default App;
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function wait() {
+  console.log("wait...");
+  await delay(1000); // 1.000 ms = 10 secondi
+  console.log("done!");
+}
