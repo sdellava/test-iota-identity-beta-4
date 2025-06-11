@@ -3,6 +3,7 @@ import "./App.css";
 import { Ed25519Keypair } from "@iota/iota-sdk/keypairs/ed25519";
 import {
   createDocumentForNetworkUsingKeyPair,
+  downloadVC,
   getCompleteJwkFromKeyPair,
   getIdentityFromKeyPair,
   randomSeed,
@@ -28,7 +29,7 @@ import {
 } from "@iota/identity-wasm/web";
 import wasmUrl from "@iota/identity-wasm/web/identity_wasm_bg.wasm?url";
 
-import { getSponsorGas, sponsorSignAndSubmit } from "./signAndExecTx";
+import { getSponsorGas, reserveGas, sponsorSignAndSubmit } from "./signAndExecTx";
 
 function App() {
   const network = "testnet";
@@ -49,28 +50,12 @@ function App() {
 
     if (!client || !keyPair || !network) throw new Error("");
 
-    const gasBudget = 30_000_000;
-    const gasBudgetBI = BigInt(30000000);
+    const gasBudget = 50_000_000;
+    const gasBudgetBI = BigInt(50000000);
 
-    const reservedSponsorGasDataOriginal = await getSponsorGas(
-      gasBudget,
-      gasStation.gasStation1URL,
-      gasStation.gasStation1Token
-    );
+    const reservedSponsorGasData = await reserveGas(gasBudget, gasStation);
 
-    const reservedSponsorGasData = {
-      sponsor_address: reservedSponsorGasDataOriginal.sponsor_address,
-      reservation_id: reservedSponsorGasDataOriginal.reservation_id,
-      gas_coins: [
-        {
-          objectId: reservedSponsorGasDataOriginal.gas_coins[0].objectId,
-          version: reservedSponsorGasDataOriginal.gas_coins[0].version.toString(),
-          digest: reservedSponsorGasDataOriginal.gas_coins[0].digest,
-        },
-      ],
-    };
-
-    console.log("reserverdSponsorGasData", reservedSponsorGasData);
+    console.log("Using gasStation ", reservedSponsorGasData.gasStationUsed);
 
     const payment = reservedSponsorGasData.gas_coins as IotaObjectRef[];
     const gasPrice = await client.getReferenceGasPrice();
@@ -88,8 +73,9 @@ function App() {
 
     const [unpublished, vmFragment1] = await createDocumentForNetworkUsingKeyPair(storage, localNetwork, keyPair);
 
-    console.log(" - Unpublished DID Document: ", unpublished.toString());
-    console.log(" - VM Fragment: ", vmFragment1.toString());
+    //console.log(" - Unpublished DID Document: ", unpublished.toString());
+    //console.log(" - VM Fragment: ", vmFragment1.toString());
+    wait(1);
 
     const [tx_data_bcs, [senderSig], createIdentity] = await identityClient
       .createIdentity(unpublished)
@@ -104,17 +90,11 @@ function App() {
       reservedSponsorGasData.reservation_id,
       tx_data_bcs,
       senderSig,
-      gasStation.gasStation1URL
+      reservedSponsorGasData.gasStationUsed
     );
 
-    await wait();
-
     const identity = await createIdentity.apply(transactionEffects, identityClient);
-
     const controllerToken = await identity.getControllerToken(identityClient);
-
-    console.log("address", keyPair.toIotaAddress());
-    console.log("controllerToken:", controllerToken);
 
     if (controllerToken) {
       const didDocument = identity.didDocument();
@@ -131,42 +111,27 @@ function App() {
 
       didDocument.insertService(linkedDomainService.toService());
 
-      const reservedSponsorGasDataOriginal2 = await getSponsorGas(
-        gasBudget,
-        gasStation.gasStation1URL,
-        gasStation.gasStation1Token
-      );
+      const reservedSponsorGasData = await reserveGas(gasBudget, gasStation);
+      console.log("Using gasStation ", reservedSponsorGasData.gasStationUsed);
 
-      const reservedSponsorGasData2 = {
-        sponsor_address: reservedSponsorGasDataOriginal2.sponsor_address,
-        reservation_id: reservedSponsorGasDataOriginal2.reservation_id,
-        gas_coins: [
-          {
-            objectId: reservedSponsorGasDataOriginal2.gas_coins[0].objectId,
-            version: reservedSponsorGasDataOriginal2.gas_coins[0].version.toString(),
-            digest: reservedSponsorGasDataOriginal2.gas_coins[0].digest,
-          },
-        ],
-      };
+      const payment = reservedSponsorGasData.gas_coins as IotaObjectRef[];
 
-      console.log("reserverdSponsorGasData2", reservedSponsorGasData2);
-
-      const payment2 = reservedSponsorGasData2.gas_coins as IotaObjectRef[];
-
-      const [tx_data_bcs2, [senderSig2], createIdentity2] = await identity
+      const [tx_data_bcs, [senderSig]] = await identity
         .updateDidDocument(didDocument, controllerToken)
         .withGasBudget(gasBudgetBI)
-        .withGasOwner(reservedSponsorGasData2.sponsor_address)
-        .withGasPayment(payment2)
+        .withGasOwner(reservedSponsorGasData.sponsor_address)
+        .withGasPayment(payment)
         .withGasPrice(gasPrice)
         .build(identityClient);
 
-      const transactionEffects2 = await sponsorSignAndSubmit(
-        reservedSponsorGasData2.reservation_id,
-        tx_data_bcs2,
-        senderSig2,
-        gasStation.gasStation1URL
+      const transactionEffects = await sponsorSignAndSubmit(
+        reservedSponsorGasData.reservation_id,
+        tx_data_bcs,
+        senderSig,
+        reservedSponsorGasData.gasStationUsed
       );
+
+      console.log("tx effect:", transactionEffects.transactionDigest);
 
       // Create the Domain Linkage Credential.
       const domainLinkageCredential: Credential = Credential.createDomainLinkageCredential({
@@ -187,18 +152,6 @@ function App() {
 
       const configurationResourceJson = configurationResource.toJSON();
       const jsonStr = JSON.stringify(configurationResourceJson, null, 2);
-
-      const downloadVC = (jsonStr: string) => {
-        const blob = new Blob([jsonStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "did-configuration.json";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      };
 
       downloadVC(jsonStr);
     }
@@ -221,8 +174,8 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function wait() {
+async function wait(s: number) {
   console.log("wait...");
-  await delay(1000); // 1.000 ms = 10 secondi
+  await delay(s * 1000);
   console.log("done!");
 }

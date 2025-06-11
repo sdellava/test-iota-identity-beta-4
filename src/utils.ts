@@ -279,3 +279,15 @@ export async function validate_dlvc(didDocument: IotaDocument, did: string) {
     }
   }
 }
+
+export const downloadVC = (jsonStr: string) => {
+  const blob = new Blob([jsonStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "did-configuration.json";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};

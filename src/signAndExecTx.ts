@@ -287,3 +287,56 @@ async function executeWithGasStation(
     }
   }
 }
+
+type reservedSponsorGasData = {
+  sponsor_address: string;
+  reservation_id: number;
+  gas_coins: [
+    {
+      objectId: string;
+      version: string;
+      digest: string;
+    }
+  ];
+  gasStationUsed: string;
+};
+
+export async function reserveGas(gasBudget: number, gasStation: gasStationCfg): Promise<reservedSponsorGasData> {
+  const useFirst = Math.random() < 0.5;
+  const primary = useFirst ? "gasStation1" : "gasStation2";
+  const fallback = useFirst ? "gasStation2" : "gasStation1";
+
+  try {
+    const data = await getSponsorGas(gasBudget, gasStation[`${primary}URL`], gasStation[`${primary}Token`]);
+
+    return {
+      sponsor_address: data.sponsor_address,
+      reservation_id: data.reservation_id,
+      gas_coins: [
+        {
+          objectId: data.gas_coins[0].objectId,
+          version: data.gas_coins[0].version.toString(),
+          digest: data.gas_coins[0].digest,
+        },
+      ],
+      gasStationUsed: gasStation[`${primary}URL`],
+    };
+  } catch (error) {
+    console.warn(`Primary ${primary} failed, trying fallback ${fallback}`);
+
+    const data = await getSponsorGas(gasBudget, gasStation[`${fallback}URL`], gasStation[`${fallback}Token`]);
+
+    return {
+      sponsor_address: data.sponsor_address,
+      reservation_id: data.reservation_id,
+      gas_coins: [
+        {
+          objectId: data.gas_coins[0].objectId,
+          version: data.gas_coins[0].version.toString(),
+          digest: data.gas_coins[0].digest,
+        },
+      ],
+      gasStationUsed: gasStation[`${fallback}URL`],
+    };
+  }
+}
