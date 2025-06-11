@@ -29,7 +29,7 @@ import {
 } from "@iota/identity-wasm/web";
 import wasmUrl from "@iota/identity-wasm/web/identity_wasm_bg.wasm?url";
 
-import { getSponsorGas, reserveGas, sponsorSignAndSubmit } from "./signAndExecTx";
+import { reserveGas, sponsorSignAndSubmit } from "./signAndExecTx";
 
 function App() {
   const network = "testnet";
@@ -56,6 +56,8 @@ function App() {
     const reservedSponsorGasData = await reserveGas(gasBudget, gasStation);
 
     console.log("Using gasStation ", reservedSponsorGasData.gasStationUsed);
+
+    wait(1);
 
     const payment = reservedSponsorGasData.gas_coins as IotaObjectRef[];
     const gasPrice = await client.getReferenceGasPrice();
