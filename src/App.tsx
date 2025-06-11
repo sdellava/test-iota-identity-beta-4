@@ -93,6 +93,8 @@ function App() {
       reservedSponsorGasData.gasStationUsed
     );
 
+    wait(1);
+
     const identity = await createIdentity.apply(transactionEffects, identityClient);
     const controllerToken = await identity.getControllerToken(identityClient);
 
